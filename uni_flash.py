@@ -325,7 +325,7 @@ def gap(s):
     return ' '.join([s[i:i+2] for i in range(0, len(s), 2)])
 
 # 主要函数
-def generate_a_image(_code,
+def generate_an_image(_code,
                      group,
                      dimensions,
                      img_properties,
@@ -548,7 +548,7 @@ def generate_unicode_flash(codes,
 
     for code_index, code in enumerate(tqdm(codes)):
         try:
-            image = generate_a_image(code,
+            image = generate_an_image(code,
                                      {
                                          'groups': groups,
                                          'group_lens': group_lens,
