@@ -104,7 +104,7 @@ VERSION_RANGES = sorted([
     ((0x18D00, 0x18D08), '13.0.0'),
     ((0x9FFD, 0x9FFF), '14.0.0'),
     ((0x2A6DE, 0x2A6DF), '14.0.0'),
-    ((0x2B735, 0x2B738), '14.0.0'),
+    ((0x2B735, 0x2B739), '14.0.0'),
     ((0x2B739, 0x2B739), '15.0.0'),
     ((0x31350, 0x323AF), '15.0.0'),
     ((0x2EBF0, 0x2EE5D), '15.1.0')
@@ -142,7 +142,7 @@ def get_char_name(code):
         0x3400 <= code <= 0x4DBF
         or 0x4E00 <= code <= 0x9FFF
         or 0x20000 <= code <= 0x2A6DF
-        or 0x2A700 <= code <= 0x2B738
+        or 0x2A700 <= code <= 0x2B739
         or 0x2B740 <= code <= 0x2B81D
         or 0x2B740 <= code <= 0x2B81D
         or 0x2B820 <= code <= 0x2CEA1
