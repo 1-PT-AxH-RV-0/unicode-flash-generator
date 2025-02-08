@@ -166,6 +166,12 @@ Unicode 快闪生成器提供了多种高级设置选项，让您能够精细控
 - `-shu`, `--show_undefined`: 展示在自定义字体中有字形的未定义字符、非字符、代理字符等。这个选项可以用来检查字体中的特殊字符。
   例：`python uni_flash.py 15 -ff -fonts custom.ttf -shu`
 
+- `-sc`, `--show_control`: 展示控制字符。
+  例：`python uni_flash.py 15 -ff -fonts custom.ttf -sc`
+
+- `-sr`, `--show_reserved`: 展示保留字符。（字形使用其交叉参考字符的字形）
+  例：`python uni_flash.py 15 -ff -fonts custom.ttf -sr`
+
 ### 字体选择
 
 - `-um`, `--use_mlst`: 使用 MonuLast (典迹末境) 字体作为最后的备选字体。

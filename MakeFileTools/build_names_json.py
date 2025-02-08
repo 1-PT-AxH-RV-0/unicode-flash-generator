@@ -18,8 +18,8 @@ CTRL_NAME = {
 
 
 def edit_reserved(o):
-    return (f"<reserved - U+{hex(o.id)[2:].upper().zfill(4)}, " +
-            f"original U+{o.xref[0]}>")
+    return (f"<reserved - U+{o.id:4X}, " +
+            f"cross references: {o.xref[0]}>")
 
 
 UNICODE_RE = re.compile(r"^([0-9a-fA-F]|10)?[0-9a-fA-F]{0,4}$")
@@ -69,7 +69,7 @@ class CharacterEncoder(json.JSONEncoder):
                     "comment": obj.comment,
                     "alias": obj.alias,
                     "formal alias": obj.formal,
-                    "cross ref": obj.xref,
+                    "cross references": obj.xref,
                     "variation": obj.vari,
                     "decomposition": obj.decomp,
                     "compat mapping": obj.compat}
@@ -176,5 +176,6 @@ json.dump(
     open(OUT_PATH, "w"),
     cls=CharacterEncoder,
     # indent=2,
+    separators=(',', ':'),
     ensure_ascii=False
 )
