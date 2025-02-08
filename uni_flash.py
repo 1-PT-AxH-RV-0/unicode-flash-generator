@@ -28,6 +28,7 @@ NOT_CHAR = [
     0xFFFFE, 0xFFFFF, 0x10FFFE, 0x10FFFF
 ]
 NOT_CHAR.extend(range(0xFDD0, 0xFDF0))
+
 with open(
     os.path.join(CUR_FOLDER, 'ToolFiles', 'Blocks.csv'),
     encoding='utf-8'
@@ -58,7 +59,7 @@ with open(
     ]
 
 
-NAME_LIST = json.load(open(
+NAMES_LIST = json.load(open(
     os.path.join(CUR_FOLDER, 'ToolFiles', 'NamesList.json'),
     encoding='utf8'
 ))
@@ -159,18 +160,18 @@ def get_char_name(code):
         or 0x18D00 <= code <= 0x18D08
     ):
         return f'Tangut-{code_u}'
-    return NAME_LIST.get(
+    return NAMES_LIST.get(
         str(code),
         {'name': f'<undefined character-{code_u}>'}
     )['name']
 
 
 def get_char_alias(code):
-    return NAME_LIST.get(str(code), {'alias': []})['alias']
+    return NAMES_LIST.get(str(code), {'alias': []})['alias']
 
 
 def get_char_comment(code):
-    return NAME_LIST.get(str(code), {'comment': []})['comment']
+    return NAMES_LIST.get(str(code), {'comment': []})['comment']
 
 
 def get_char_version(code):
@@ -181,7 +182,7 @@ def get_char_version(code):
         VERSION_RANGE_END[index] >= code
     ):
         return VERSION_RANGES[index][1]
-    return NAME_LIST.get(
+    return NAMES_LIST.get(
         str(code),
         {'version': ('<future version>' if (code not in NOT_CHAR
                                             and not is_private_use(code)
@@ -196,6 +197,18 @@ def is_defined(code):
         or 0xF0000 <= code <= 0xFFFFD
         or 0x100000 <= code <= 0x10FFFD
     ):
+        return True
+    return False
+
+
+def is_control(code):
+    if get_char_name(code).startswith('<control'):
+        return True
+    return False
+
+
+def is_reserved(code):
+    if get_char_name(code).startswith('<reserved'):
         return True
     return False
 
@@ -222,7 +235,7 @@ def get_block(code):
 def get_block_infos(block_name):
     return BLOCK_INFOS.get(
         block_name,
-        ('未定义', 'Undefined', 'U+?-U+?', (-1, -1))
+        ('未定义', 'Undefined', 'U+?~U+?', (-1, -1))
     )
 
 
@@ -363,7 +376,7 @@ def generate_an_image(_code,
         info_fonts['cannot_display_default'],
         info_fonts['percent']
     )
-    last_type, show_private, show_undefined = opts['last_type'], opts['show_private'], opts['show_undefined']
+    last_type, show_private, show_undefined, show_control, show_reserved = opts['last_type'], opts['show_private'], opts['show_undefined'], opts['show_control'], opts['show_reserved']
 
     font = None
     for _font, font_cmap, _font_name in custom_fonts:
@@ -447,24 +460,24 @@ def generate_an_image(_code,
     draw.text((w - margin_right, bar_height + margin_top), percent, font=percent_font, fill=textc, anchor='rt')
 
     alias = ', '.join(get_char_alias(_code))
-    formal_alias = ', '.join(NAME_LIST.get(
+    formal_alias = ', '.join(NAMES_LIST.get(
         str(_code),
         {'formal alias': []})['formal alias']
     )
     comment = '; '.join(get_char_comment(_code))
-    cross_ref = ', '.join(NAME_LIST.get(
+    cross_ref = ', '.join(NAMES_LIST.get(
         str(_code),
-        {'cross ref': []})['cross ref']
+        {'cross references': []})['cross references']
     )
-    variation = ', '.join(NAME_LIST.get(
+    variation = ', '.join(NAMES_LIST.get(
         str(_code),
         {'variation': []})['variation']
     )
-    decomposition = ', '.join(NAME_LIST.get(
+    decomposition = ', '.join(NAMES_LIST.get(
         str(_code),
         {'decomposition': []})['decomposition']
     )
-    compat_mapping = ', '.join(NAME_LIST.get(
+    compat_mapping = ', '.join(NAMES_LIST.get(
         str(_code),
         {'compat mapping': []})['compat mapping']
     )
@@ -489,6 +502,8 @@ def generate_an_image(_code,
     draw.text((margin_left, bar_height + margin_top), t_text, font=top_font, fill=textc)
     if (is_defined(_code) and not is_private_use(_code) or last_type
         or show_private and font is not None and is_private_use(_code)
+        or show_control and font is not None and is_control(_code)
+        or show_reserved and font is not None and is_reserved(_code)
         or show_undefined and font is not None and not is_defined(_code)):
         draw.text((w / 2, h / 2), text, font=font, fill=textc, anchor='mm')
     else:
@@ -502,6 +517,10 @@ def generate_an_image(_code,
             text = f'低位替代字符 {code}'
         elif is_private_use(_code):
             text = f'私用区字符 {code}'
+        elif is_control(_code):
+            text = f'控制字符 {code}'
+        elif is_reserved(_code):
+            text = f'保留字符 {code}'
         else:
             text = f'未定义字符 {code}'
         draw.text((w / 2, h / 2), text, font=cannot_display_default_font, fill=textc, anchor='mm')
@@ -585,43 +604,47 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='这是一个Unicode快闪生成脚本')
     parser.add_argument('fps', type=float,
-                        help='帧率，建议15，可以为小数')
+                        help='帧率，建议 15，可以为小数。')
     parser.add_argument('-wt', '--width', type=int, default=1920,
-                        help='视频宽度，默认1920')
+                        help='视频宽度，默认 1920。')
     parser.add_argument('-ht', '--height', type=int, default=1080,
-                        help='视频宽度，默认1080')
+                        help='视频宽度，默认 1080。')
     parser.add_argument('-bh', '--bar_height', type=int, default=36,
-                        help='顶部进度条高度，默认36')
+                        help='顶部进度条高度，默认 36。')
     parser.add_argument('-f', '--fonts', type=str, nargs='*', default=[],
-                        help='字体路径列表，按输入顺序计算优先级')
+                        help='字体路径列表，按输入顺序计算优先级。')
     parser.add_argument('-op', '--out_path', type=str,
                         default=os.path.join(CUR_FOLDER, 'res.mp4'),
-                        help='生成视频的路径')
+                        help='生成视频的路径。')
     parser.add_argument('-sp', '--show_private', action='store_true',
-                        help='展示在字体中有字形的私用区字符')
+                        help='展示在字体中有字形的私用区字符。')
+    parser.add_argument('-sc', '--show_control', action='store_true',
+                        help='展示控制字符。')
+    parser.add_argument('-sr', '--show_reserved', action='store_true',
+                        help='展示保留字符。')
     parser.add_argument('-sng', '--skip_no_glyph', action='store_true',
-                        help='跳过在所有自定义字体中都没有字形的字符')
+                        help='跳过在所有自定义字体中都没有字形的字符。')
     parser.add_argument('-sl', '--skip_long', action='store_true',
-                        help='跳过U+323B0-U+DFFFF')
+                        help='跳过 U+323B0~U+DFFFF。')
     parser.add_argument('-mt', '--margin_top', type=int, default=15,
-                        help='上边距，默认15')
+                        help='上边距，默认 15。')
     parser.add_argument('-mb', '--margin_bottom', type=int, default=15,
-                        help='下边距，默认15')
+                        help='下边距，默认 15。')
     parser.add_argument('-ml', '--margin_left', type=int, default=30,
-                        help='左边距，默认30')
+                        help='左边距，默认 30。')
     parser.add_argument('-mr', '--margin_right', type=int, default=30,
-                        help='右边距，默认30')
+                        help='右边距，默认 30。')
 
     undef_group = parser.add_mutually_exclusive_group()
     undef_group.add_argument('-su', '--skip_undefined', action='store_true',
-                             help='跳过未定义字符、非字符、代理字符等')
+                             help='跳过未定义字符、非字符、代理字符等。')
     undef_group.add_argument('-shu', '--show_undefined', action='store_true',
-                             help='展示在自定义字体中有字形的未定义字符、非字符、代理字符等')
+                             help='展示在自定义字体中有字形的未定义字符、非字符、代理字符等。')
     last_group = parser.add_mutually_exclusive_group()
     last_group.add_argument('-um', '--use_mlst', action='store_true',
-                            help='使用MonuLast(典迹末境)字体')
+                            help='使用MonuLast（典迹末境）字体。')
     last_group.add_argument('-ul', '--use_last', action='store_true',
-                            help='使用LastResort(最后手段)字体')
+                            help='使用LastResort（最后手段）字体。')
     chars_group = parser.add_mutually_exclusive_group(required=True)
     chars_group.add_argument('-r', '--rang', type=hex_number,
                              nargs=2, action=range_action(
@@ -629,15 +652,15 @@ if __name__ == '__main__':
                                  range_formatter=lambda i: hex(i)
                                  .replace('0x', '').upper()
                              ),
-                             help='快闪字符的范围，不带0x的十六进制数')
+                             help='快闪字符的范围，不带0x的十六进制数。')
     chars_group.add_argument('-fcf', '--from_code_file',
                              type=argparse.FileType('r'),
-                             help='通过一个写着Unicode编码（不带0x的十六进制数，多个编码间用「,」分隔）的文件获取将要快闪的字符')
+                             help='通过一个写着Unicode编码（不带0x的十六进制数，多个编码间用「,」分隔）的文件获取将要快闪的字符。')
     chars_group.add_argument('-ftf', '--from_text_file',
                              type=argparse.FileType('r'),
-                             help='通过一个一般的文本文件获取将要快闪的字符')
+                             help='通过一个一般的文本文件获取将要快闪的字符。')
     chars_group.add_argument('-ff', '--from_font', action='store_true',
-                             help='从字体文件列表获取将要快闪的字符')
+                             help='从字体文件列表获取将要快闪的字符。')
     args = parser.parse_args()
 
     # 要用到的字体
@@ -649,7 +672,7 @@ if __name__ == '__main__':
     cannot_display_default_font_path = os.path.join(CUR_FOLDER, 'Sarasa-Mono-SC-Regular.ttf')
     percent_font_path = os.path.join(CUR_FOLDER, 'Sarasa-Mono-SC-Regular.ttf')
 
-    t_font = ImageFont.truetype(top_font_path, 10)
+    t_font = ImageFont.truetype(top_font_path, 12)
     rm_font = ImageFont.truetype(right_middle_font_path, 25)
     lb_font = ImageFont.truetype(left_bottom_font_path, 25)
     rb_font = ImageFont.truetype(right_bottom_font_path, 40)
@@ -703,32 +726,36 @@ if __name__ == '__main__':
             lambda c: c in all_glyphs, codes
         ))
 
-    generate_unicode_flash(codes,
-                           args.out_path,
-                           {
-                               'bar_height': args.bar_height,
-                               'margin_top': args.margin_top,
-                               'margin_bottom': args.margin_bottom,
-                               'margin_left': args.margin_left,
-                               'margin_right': args.margin_right,
-                           },
-                           {
-                               'width': args.width,
-                               'height': args.height,
-                               'fps': args.fps
-                           },
-                           {
-                              'top': t_font,
-                              'right_middle': rm_font,
-                              'left_bottom': lb_font,
-                              'middle_bottom': mb_font,
-                              'right_bottom': rb_font,
-                              'cannot_display_default': cdd_font,
-                              'percent': p_font
-                           },
-                           args.fonts,
-                           {
-                               'last_type': 1 if args.use_last else 2 if args.use_mlst else 0,
-                               'show_private': args.show_private,
-                               'show_undefined': args.show_undefined
-                           })
+    generate_unicode_flash(
+        codes,
+        args.out_path,
+        {
+           'bar_height': args.bar_height,
+           'margin_top': args.margin_top,
+           'margin_bottom': args.margin_bottom,
+           'margin_left': args.margin_left,
+           'margin_right': args.margin_right,
+        },
+        {
+           'width': args.width,
+           'height': args.height,
+           'fps': args.fps
+        },
+        {
+          'top': t_font,
+          'right_middle': rm_font,
+          'left_bottom': lb_font,
+          'middle_bottom': mb_font,
+          'right_bottom': rb_font,
+          'cannot_display_default': cdd_font,
+          'percent': p_font
+        },
+        args.fonts,
+        {
+           'last_type': 1 if args.use_last else 2 if args.use_mlst else 0,
+           'show_private': args.show_private,
+           'show_undefined': args.show_undefined,
+           'show_control': args.show_control,
+           'show_reserved': args.show_reserved
+        }
+    )
