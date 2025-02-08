@@ -1,35 +1,45 @@
 import os
+import re
 import json
 
 CUR_FOLDER = os.path.dirname(__file__)
-NAMES_LIST_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'NamesList.json')
-NAMES_LIST = json.load(open(NAMES_LIST_PATH))
+NAMES_LIST_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'NamesList', '16.0.0.txt')
+UNICODE_RE = re.compile(r"^([0-9a-fA-F]|10)?[0-9a-fA-F]{0,4}$")
 
-res = list(map(int, NAMES_LIST.keys()))
+res = set()
 
-res.extend(range(0x3400, 0x4DBF + 1))
-res.extend(range(0x4E00, 0x9FFF + 1))
-res.extend(range(0x20000, 0x2A6DF + 1))
-res.extend(range(0x2A700, 0x2B739 + 1))
-res.extend(range(0x2B740, 0x2B81D + 1))
-res.extend(range(0x2B820, 0x2CEA1 + 1))
-res.extend(range(0x2CEB0, 0x2EBE0 + 1))
-res.extend(range(0x2EBF0, 0x2EE5D + 1))
-res.extend(range(0x30000, 0x3134A + 1))
-res.extend(range(0x31350, 0x323AF + 1))
+with open(NAMES_LIST_PATH) as f:
+    for line in f.readlines():
+        line = line[:-1]
+        if line.startswith('@@\t'):
+            block_start, block_name, block_end = line.split('\t')[1:]
+            if (
+                block_name.startswith('CJK Unified Ideographs') or
+                block_name == 'Hangul Syllables' or
+                block_name == 'Tangut' or
+                block_name == 'Tangut Supplement'
+            ):
+                res.update(range(int(block_start, 16), int(block_end, 16) + 1))
+        if (
+            line and
+            not line.startswith('\t') and
+            len(line.split('\t')) == 2 and
+            UNICODE_RE.search(line.split('\t')[0])
+        ):
+            code, name, *_ = line.split('\t')
+            if name.startswith('<'): continue
+            res.add(int(code, 16))
 
-res.extend(range(0xAC00, 0xD7A3 + 1))
-
-res.extend(range(0x17000, 0x187F7 + 1))
-res.extend(range(0x18D00, 0x18D08 + 1))
-res.sort()
 
 json.dump(
-    res,
-    open(
-        os.path.join(
-            os.path.dirname(CUR_FOLDER),
-            'ToolFiles', 'DefinedCharacterList.json'
-        ), 'w'
-    ),
+  sorted(list(res)),
+  open(
+      os.path.join(
+          os.path.dirname(CUR_FOLDER),
+          'ToolFiles',
+          'DefinedCharacterList.json'
+      ),
+      'w'
+  ),
+  separators=(',', ':')
 )
