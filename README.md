@@ -22,13 +22,14 @@
    - `pillow`;
    - `tqdm`;
    - `fonttools`;
+   - `lxml`;
    - `opencv-python`;
    - `numpy`.
 
    使用命令：
 
    ```bash
-   pip install pillow tqdm fonttools opencv-python numpy
+   pip install pillow tqdm fonttools lxml opencv-python numpy
    ```
 
    若您在安装opencv-python或numpy时遇到错误，请尝试：
