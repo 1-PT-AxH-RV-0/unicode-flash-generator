@@ -63,6 +63,21 @@ NAMES_LIST = json.load(open(
     os.path.join(CUR_FOLDER, 'ToolFiles', 'NamesList.json'),
     encoding='utf8'
 ))
+VERSIONS = json.load(open(
+    os.path.join(CUR_FOLDER, 'ToolFiles', 'Versions.json'),
+    encoding='utf8'
+))
+VERSIONS['single'] = {int(k): v for k, v in VERSIONS['single'].items()}
+VERSIONS['range'] = {tuple(map(int, k.split(','))): v for k, v in VERSIONS['range'].items()}
+
+COMMON_NAMES = {
+    tuple(map(int, k.split(','))): v
+    for k, v in
+    json.load(open(
+        os.path.join(CUR_FOLDER, 'ToolFiles', 'CommonNames.json'),
+        encoding='utf8'
+    )).items()
+}
 DEFINED_CHARACTER_LIST = set(json.load(open(
     os.path.join(CUR_FOLDER, 'ToolFiles', 'DefinedCharacterList.json'),
     encoding='utf8'
@@ -79,42 +94,6 @@ FONTS = {
     for k, v in FONTS.items()
 }
 
-VERSION_RANGES = sorted([
-    ((0xE000, 0xF8FF), '6.0.0 or earlier'),
-    ((0xF0000, 0xFFFFD), '6.0.0 or earlier'),
-    ((0x100000, 0x10FFFD), '6.0.0 or earlier'),
-    ((0x3400, 0x4DB5), '6.0.0 or earlier'),
-    ((0x4E00, 0x9FCB), '6.0.0 or earlier'),
-    ((0x20000, 0x2A6D6), '6.0.0 or earlier'),
-    ((0x2A700, 0x2B734), '6.0.0 or earlier'),
-    ((0x2B740, 0x2B81D), '6.0.0 or earlier'),
-    ((0x9FCC, 0x9FCC), '6.1.0'),
-    ((0x9FCD, 0x9FD5), '8.0.0'),
-    ((0x2B820, 0x2CEA1), '8.0.0'),
-    ((0x17000, 0x187EC), '9.0.0'),
-    ((0x9FD6, 0x9FEA), '10.0.0'),
-    ((0x2CEB0, 0x2EBE0), '10.0.0'),
-    ((0x9FEB, 0x9FEF), '11.0.0'),
-    ((0x187ED, 0x187F1), '11.0.0'),
-    ((0xAC00, 0xD7A3), '6.0.0 or earlier'),
-    ((0x187F2, 0x187F7), '12.0.0'),
-    ((0x4DB6, 0x4DBF), '13.0.0'),
-    ((0x9FF0, 0x9FFC), '13.0.0'),
-    ((0x2A6D7, 0x2A6DD), '13.0.0'),
-    ((0x30000, 0x3134A), '13.0.0'),
-    ((0x18D00, 0x18D08), '13.0.0'),
-    ((0x9FFD, 0x9FFF), '14.0.0'),
-    ((0x2A6DE, 0x2A6DF), '14.0.0'),
-    ((0x2B735, 0x2B738), '14.0.0'),
-    ((0x2B739, 0x2B739), '15.0.0'),
-    ((0x31350, 0x323AF), '15.0.0'),
-    ((0x2EBF0, 0x2EE5D), '15.1.0')
-], key=lambda item: item[0][0])
-
-VERSION_RANGE_START = [i[0][0] for i in VERSION_RANGES]
-VERSION_RANGE_END = [i[0][1] for i in VERSION_RANGES]
-
-
 # 字体相关的函数
 def get_font_name(font):
     return font['name'].getName(6, 3, 1, 1033).string.decode('utf-8').replace('\0', '')
@@ -127,67 +106,37 @@ def get_all_codes_from_font(font):
 
 # 字符信息相关的函数
 def get_char_name(code):
-    code_u = 'U+' + hex(code)[2:].upper()
-
     if code in NOT_CHAR:
-        return f'<not a character-{code_u}>'
+        return f'<not a character-{code:04X}>'
     if 0xD800 <= code <= 0xDFFF:
-        return f'Surrogate-{code_u}'
-    if (
-        0xE000 <= code <= 0xF8FF
-        or 0xF0000 <= code <= 0xFFFFD
-        or 0x100000 <= code <= 0x10FFFD
-    ):
-        return f'Private Use-{code_u}'
-    if (
-        0x3400 <= code <= 0x4DBF
-        or 0x4E00 <= code <= 0x9FFF
-        or 0x20000 <= code <= 0x2A6DF
-        or 0x2A700 <= code <= 0x2B739
-        or 0x2B740 <= code <= 0x2B81D
-        or 0x2B740 <= code <= 0x2B81D
-        or 0x2B820 <= code <= 0x2CEA1
-        or 0x2CEB0 <= code <= 0x2EBE0
-        or 0x2EBF0 <= code <= 0x2EE5D
-        or 0x30000 <= code <= 0x3134A
-        or 0x31350 <= code <= 0x323AF
-    ):
-        return f'CJK Unified Ideograph-{code_u}'
-    if 0xAC00 <= code <= 0xD7A3:
-        return f'Hangul Syllable-{code_u}'
-    if (
-        0x17000 <= code <= 0x187F7
-        or 0x18D00 <= code <= 0x18D08
-    ):
-        return f'Tangut-{code_u}'
-    return NAMES_LIST.get(
+        return f'SURROGATE-{code:04X}'
+    name = NAMES_LIST.get(
         str(code),
-        {'name': f'<undefined character-{code_u}>'}
+        {'name': None}
     )['name']
-
-
-def get_char_alias(code):
-    return NAMES_LIST.get(str(code), {'alias': []})['alias']
-
-
-def get_char_comment(code):
-    return NAMES_LIST.get(str(code), {'comment': []})['comment']
+    
+    if name is not None:
+        return name
+    else:
+        for k, v in COMMON_NAMES.items():
+            s, e = k
+            if s <= code <= e:
+                return v.replace('#', f'{code:04X}')
+    
+    return f'<undefined character-{code:04X}>'
 
 
 def get_char_version(code):
-    index = bisect.bisect_right(VERSION_RANGE_START, code) - 1
-
-    if (
-        index != -1 and
-        VERSION_RANGE_END[index] >= code
-    ):
-        return VERSION_RANGES[index][1]
-    return NAMES_LIST.get(
-        str(code),
-        {'version': ('<future version>' if (code not in NOT_CHAR
-                                            and not is_private_use(code)
-                                            and not 0xD800 <= code <= 0xDFFF) else '<never>')}
-    )['version']
+    version = VERSIONS['single'].get(code)
+    if version is not None:
+        return version
+    else:
+        for k, v in VERSIONS['range'].items():
+            s, e = k
+            if s <= code <= e:
+                return v
+    
+    return 'unassigned'
 
 
 def is_defined(code):
@@ -413,7 +362,11 @@ def generate_an_image(_code,
     if font is None:
         if (
             show_private and is_private_use(_code)
+            or show_control and is_control(_code)
+            or show_reserved and is_reserved(_code)
             or not is_private_use(_code)
+            or not is_control(_code)
+            or not is_reserved(_code)
         ):
             for font_name_ in FONTS:
                 can_display_chars, font_ = FONTS[font_name_]
@@ -459,12 +412,18 @@ def generate_an_image(_code,
     percent_left = draw.textbbox((w - 15, bar_height + 15), percent, font=middle_bottom_font, anchor='rt')[0]
     draw.text((w - margin_right, bar_height + margin_top), percent, font=percent_font, fill=textc, anchor='rt')
 
-    alias = ', '.join(get_char_alias(_code))
+    alias = ', '.join(NAMES_LIST.get(
+        str(_code),
+        {'alias': []})['alias']
+    )
     formal_alias = ', '.join(NAMES_LIST.get(
         str(_code),
         {'formal alias': []})['formal alias']
     )
-    comment = '; '.join(get_char_comment(_code))
+    comment = '; '.join(NAMES_LIST.get(
+        str(code),
+        {'comment': []})['comment']
+    )
     cross_ref = ', '.join(NAMES_LIST.get(
         str(_code),
         {'cross references': []})['cross references']
@@ -473,9 +432,12 @@ def generate_an_image(_code,
         str(_code),
         {'variation': []})['variation']
     )
-    decomposition = ', '.join(NAMES_LIST.get(
-        str(_code),
-        {'decomposition': []})['decomposition']
+    decomposition = ' '.join(map(
+        lambda c: 'U+' + c,
+        NAMES_LIST.get(
+            str(_code),
+            {'decomposition': []})['decomposition']
+        )
     )
     compat_mapping = ', '.join(NAMES_LIST.get(
         str(_code),
