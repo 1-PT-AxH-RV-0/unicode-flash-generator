@@ -3,7 +3,7 @@ import re
 import json
 
 CUR_FOLDER = os.path.dirname(__file__)
-NAMES_LIST_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'NamesList', '16.0.0.txt')
+NAMES_LIST_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'data', 'NamesList.txt')
 UNICODE_RE = re.compile(r"^([0-9a-fA-F]|10)?[0-9a-fA-F]{0,4}$")
 
 res = set()
