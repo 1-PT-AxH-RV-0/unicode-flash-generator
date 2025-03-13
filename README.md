@@ -79,7 +79,7 @@ python add_audio.py
 使用一个或多个自定义字体：
 
 ```bash
-python uni_flash.py 15 -r 0 20 -fonts a.ttf b.otf c.ttf
+python uni_flash.py 15 -r 0 20 -f a.ttf b.otf c.ttf
 ```
 
 > 只支持ttf或otf格式的非位图字体。
@@ -125,7 +125,7 @@ python uni_flash.py 15 -fcf 1.txt
 使用指定字体文件中所有有字形的字符作为将要快闪的字符：
 
 ```bash
-python uni_flash.py 15 -ff -fonts a.ttf b.otf c.ttf
+python uni_flash.py 15 -ff -f a.ttf b.otf c.ttf
 ```
 ### 更多选项
 
