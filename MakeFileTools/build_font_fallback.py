@@ -76,7 +76,6 @@ fonts: list[str] = [
     'NotoSansSC',
     'NotoSansKR',
     'Monu-Temp',
-    'MonuHanp_3_55Ra_L3',
     'NotoEmoji-Regular',
     'SegoeUI',
     'SegoeUISymbol',

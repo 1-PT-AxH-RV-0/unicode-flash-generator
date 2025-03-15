@@ -327,12 +327,6 @@ def generate_an_image(_code,
     )
     last_type, show_private, show_undefined, show_control, show_reserved = opts['last_type'], opts['show_private'], opts['show_undefined'], opts['show_control'], opts['show_reserved']
 
-    font = None
-    for _font, font_cmap, _font_name in custom_fonts:
-        if _code in font_cmap:
-            font = _font
-            font_name = _font_name
-            break
     if _code == 0xA:
         text = '\u240A'
     elif _code == 0xD:
@@ -358,31 +352,44 @@ def generate_an_image(_code,
         plane[3]
     )
 
+    font = None
     font_name = 'unknown'
+    # 自定义字体
+    for _font, font_cmap, _font_name in custom_fonts:
+        if _code in font_cmap:
+            font = _font
+            font_name = _font_name
+            break
+    # 默认字体
+    if (
+        font is None and 
+        (
+            show_private and is_private_use(_code) or
+            show_control and is_control(_code) or
+            show_reserved and is_reserved(_code) or
+            not (
+                is_private_use(_code) or
+                is_control(_code) or
+                is_reserved(_code)
+            )
+        )
+    ):
+        for font_name_ in FONTS:
+            can_display_chars, font_ = FONTS[font_name_]
+            if _code in can_display_chars:
+                font = font_
+                font_name = font_name_
+                break
+    # 无可用字体，使用最后字体
     if font is None:
-        if (
-            show_private and is_private_use(_code)
-            or show_control and is_control(_code)
-            or show_reserved and is_reserved(_code)
-            or not is_private_use(_code)
-            or not is_control(_code)
-            or not is_reserved(_code)
-        ):
-            for font_name_ in FONTS:
-                can_display_chars, font_ = FONTS[font_name_]
-                if _code in can_display_chars:
-                    font = font_
-                    font_name = font_name_
-                    break
-        if font is None:
-            if last_type == 2:
-                font = font_mlst
-                font_name = font_name_mlst
-            elif last_type == 1:
-                font = font_last
-                font_name = font_name_last
-            else:
-                font_name = 'Sarasa-Mono-SC-Regular'
+        if last_type == 2:
+            font = font_mlst
+            font_name = font_name_mlst
+        elif last_type == 1:
+            font = font_last
+            font_name = font_name_last
+        else:
+            font_name = 'Sarasa-Mono-SC-Regular'
 
     code = 'U+' + hex(_code)[2:].upper().zfill(4)
     image = Image.new('L', (w, h), color=bgc)
