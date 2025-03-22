@@ -428,7 +428,7 @@ def generate_an_image(_code,
         {'formal alias': []})['formal alias']
     )
     comment = '; '.join(NAMES_LIST.get(
-        str(code),
+        str(_code),
         {'comment': []})['comment']
     )
     cross_ref = ', '.join(NAMES_LIST.get(
