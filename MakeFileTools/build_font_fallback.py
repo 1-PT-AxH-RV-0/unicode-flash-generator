@@ -77,22 +77,10 @@ fonts: list[str] = [
     'NotoSansKR',
     'Monu-Temp',
     'NotoEmoji-Regular',
-    'SegoeUI',
-    'SegoeUISymbol',
-    'SegoeUIHistoric',
-    'SegoeUIEmoji',
-    'MicrosoftTaiLe',
-    'MicrosoftNewTaiLue',
-    'Microsoft-Yi-Baiti',
-    'MicrosoftPhagsPa',
+    'SegoeUIEHS',
+    'MicrosoftTNYP',
     'MVBoli',
-    'Ebrima',
-    'NirmalaUI',
-    'LeelawadeeUI',
-    'MyanmarText',
-    'Calibri',
-    'Gadugi',
-    'JavaneseText'
+    'ENLMCGJText',
 ]
 
 already_can_display_codes: set[int] = set()
