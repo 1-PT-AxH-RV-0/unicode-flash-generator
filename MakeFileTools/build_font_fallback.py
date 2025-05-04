@@ -70,17 +70,14 @@ def is_reserved(code):
 
 fonts: list[str] = [
     'Ctrl-Ctrl',
-    'PlangothicP1',
-    'PlangothicP2',
-    'Noto-Unicode',
+    'PlangothicP1-Regular',
+    'PlangothicP2-Regular',
+    'NotoUnicode-7.3',
     'NotoSansSC',
     'NotoSansKR',
-    'Monu-Temp',
+    'MonuTemp-0.920',
     'NotoEmoji-Regular',
-    'SegoeUIEHS',
-    'MicrosoftTNYP',
-    'MVBoli',
-    'ENLMCGJText',
+    'NotoSansSuper',
 ]
 
 already_can_display_codes: set[int] = set()
@@ -110,4 +107,4 @@ json.dump(
     ensure_ascii=False
 )
 
-print(sorted(list(DEFINED_CHARACTER_LIST - set(already_can_display_codes))))
+print(sorted(map(lambda c: hex(c)[2:], list(DEFINED_CHARACTER_LIST - set(already_can_display_codes)))))
