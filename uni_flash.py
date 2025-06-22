@@ -3,6 +3,7 @@ from tqdm import tqdm
 from fontTools.ttLib import TTFont
 import cv2
 import numpy as np
+from control_map import get_char
 
 import os
 import re
@@ -327,12 +328,7 @@ def generate_an_image(_code,
     )
     last_type, show_private, show_undefined, show_control, show_reserved = opts['last_type'], opts['show_private'], opts['show_undefined'], opts['show_control'], opts['show_reserved']
 
-    if _code == 0xA:
-        text = '\u240A'
-    elif _code == 0xD:
-        text = '\u240D'
-    else:
-        text = chr(_code)
+    text = get_char(_code)
     utf8 = 'UTF-8: ' + gap(to_utf8_hex(_code))
     utf16le = 'UTF-16LE: ' + gap(to_utf16le_hex(_code))
     utf16be = 'UTF-16BE: ' + gap(to_utf16be_hex(_code))
