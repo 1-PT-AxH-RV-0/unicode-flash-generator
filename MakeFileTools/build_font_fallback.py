@@ -72,12 +72,11 @@ fonts: list[str] = [
     'Ctrl-Ctrl',
     'PlangothicP1-Regular',
     'PlangothicP2-Regular',
-    'NotoUnicode-7.3',
     'NotoSansSC',
-    'NotoSansKR',
-    'MonuTemp-0.920',
     'NotoEmoji-Regular',
     'NotoSansSuper',
+    'NotoUnicode-7.3',
+    'MonuTemp-0.920',
 ]
 
 already_can_display_codes: set[int] = set()
