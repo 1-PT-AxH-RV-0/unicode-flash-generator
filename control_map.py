@@ -75,7 +75,7 @@ CHAR_MAP = {
 
 NOT_CHAR = [
     *[(0x10000 * i + 0xFFFE, 0x10000 * i + 0xFFFF) for i in range(0, 17)],
-    (0xFDD0, 0xFDF0)
+    (0xFDD0, 0xFDEF)
 ]
 CTRLS = {
   *sum([list(range(s, e + 1)) for s, e, _ in CONTINUOUS_RANGES], []), # sum(..., []) 用于扁平化列表。
