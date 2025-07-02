@@ -97,7 +97,7 @@ for i, (start, end) in enumerate(BLOCK_RANGES):
     for code in range(start, end + 1):
         LAST_RESORT_MAP[code] = 0x100000 + i
 
-for plane_index, i in enumerate(range(0, 0x110000, 0x10000)):
+for plane_index, i in enumerate(range(0, 0xF0000, 0x10000)):
     undefined_char_in_this_plane = filter(lambda x: i <= x <= i + 0xFFFF, UNDEFINED_CHARACTER_LIST)
     for code in undefined_char_in_this_plane:
         LAST_RESORT_MAP[code] = 0x10A000 + plane_index
