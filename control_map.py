@@ -1,3 +1,9 @@
+from functools import partial
+import os
+import csv
+import json
+
+CUR_FOLDER = os.path.dirname(__file__)
 
 CONTINUOUS_RANGES = [
     (0x00, 0x20, 0x2400),
@@ -24,6 +30,8 @@ CONTINUOUS_RANGES = [
 ]
 
 DISCRETE = {
+    0x7F: 0x23A2,
+
     0xAD: 0xE000,
     0x34F: 0xE000,
     0x61C: 0xE000,
@@ -51,26 +59,55 @@ DISCRETE = {
 }
 
 CHAR_MAP = {
-    0x7F: chr(0x2421),   # 特殊点
-
     # 连续区间
     **{
-        _code: chr(_code + offset)
+        code: chr(code + offset)
         for start, end, offset in CONTINUOUS_RANGES
-        for _code in range(start, end + 1)
+        for code in range(start, end + 1)
     },
 
     # 离散点
     **{
-        _code: chr(_code + offset)
-        for _code, offset in DISCRETE.items()
+        code: chr(code + offset)
+        for code, offset in DISCRETE.items()
     }
 }
 
-def get_char(_code: int) -> str:
-    """
-    如果 code 在 CHAR_MAP 里，就直接返回预先映射好的字符；
-    否则返回 chr(code)。
-    from control_map import get_char
-    """
-    return CHAR_MAP.get(_code, chr(_code))
+NOT_CHAR = [
+    *[(0x10000 * i + 0xFFFE, 0x10000 * i + 0xFFFF) for i in range(0, 17)],
+    (0xFDD0, 0xFDF0)
+]
+CTRLS = {
+  *sum([list(range(s, e + 1)) for s, e, _ in CONTINUOUS_RANGES], []), # sum(..., []) 用于扁平化列表。
+  *DISCRETE
+}
+with open(
+    os.path.join(CUR_FOLDER, 'ToolFiles', 'Blocks.csv'),
+    encoding='utf-8'
+) as blocks_csv:
+    reader = list(csv.reader(blocks_csv, delimiter='|'))
+    BLOCK_RANGES = [tuple(map(partial(int, base=16), line[0].split('..'))) for line in reader]
+UNDEFINED_CHARACTER_LIST = set(range(0, 0x110000)) - set(json.load(open(
+    os.path.join(CUR_FOLDER, 'ToolFiles', 'DefinedCharacterList.json'),
+    encoding='utf8'
+))) - CTRLS
+
+LAST_RESORT_MAP = {}
+for i, (start, end) in enumerate(BLOCK_RANGES):
+    for code in range(start, end + 1):
+        LAST_RESORT_MAP[code] = 0x100000 + i
+
+for plane_index, i in enumerate(range(0, 0x110000, 0x10000)):
+    undefined_char_in_this_plane = filter(lambda x: i <= x <= i + 0xFFFF, UNDEFINED_CHARACTER_LIST)
+    for code in undefined_char_in_this_plane:
+        LAST_RESORT_MAP[code] = 0x10A000 + plane_index
+
+for i, (start, end) in enumerate(NOT_CHAR):
+    for code in range(start, end + 1):
+        LAST_RESORT_MAP[code] = 0x10B000 + i
+
+def get_char(code: int) -> str:
+    return CHAR_MAP.get(code, chr(code))
+
+def get_char_in_last_resort(code: int) -> str:
+    return LAST_RESORT_MAP[code]
