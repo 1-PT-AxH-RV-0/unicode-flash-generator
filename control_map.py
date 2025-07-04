@@ -101,7 +101,7 @@ def get_char_in_last_resort(code: int) -> str:
             return 0x10B000 + i
     
     plane_index = code // 0x10000
-    if plane_index < 0xF and code in UNDEFINED_CHARACTER_LIST:
+    if plane_index < 0xF and not 0xD800 <= code <= 0xDFFF and code in UNDEFINED_CHARACTER_LIST:
         return 0x10A000 + plane_index
 
     for i, (start, end) in enumerate(BLOCK_RANGES):
