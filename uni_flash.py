@@ -3,7 +3,7 @@ from tqdm import tqdm
 from fontTools.ttLib import TTFont
 import cv2
 import numpy as np
-from control_map import get_char
+from control_map import get_char, get_char_in_last_resort, CTRLS
 
 import os
 import re
@@ -82,7 +82,7 @@ COMMON_NAMES = {
 DEFINED_CHARACTER_LIST = set(json.load(open(
     os.path.join(CUR_FOLDER, 'ToolFiles', 'DefinedCharacterList.json'),
     encoding='utf8'
-)))
+))) - CTRLS
 FONTS = json.load(open(
     os.path.join(CUR_FOLDER, 'ToolFiles', 'FontFallback.json'),
     encoding='utf8'
@@ -152,9 +152,7 @@ def is_defined(code):
 
 
 def is_control(code):
-    if get_char_name(code).startswith('<control'):
-        return True
-    return False
+    return code in CTRLS
 
 
 def is_reserved(code):
@@ -360,14 +358,10 @@ def generate_an_image(_code,
     if (
         font is None and 
         (
+            is_defined(_code) and not is_private_use(_code) or
             show_private and is_private_use(_code) or
             show_control and is_control(_code) or
-            show_reserved and is_reserved(_code) or
-            not (
-                is_private_use(_code) or
-                is_control(_code) or
-                is_reserved(_code)
-            )
+            show_reserved and is_reserved(_code)
         )
     ):
         for font_name_ in FONTS:
@@ -465,11 +459,16 @@ def generate_an_image(_code,
         version
     ]))
     draw.text((margin_left, bar_height + margin_top), t_text, font=top_font, fill=textc)
-    if (is_defined(_code) and not is_private_use(_code) or last_type
-        or show_private and font is not None and is_private_use(_code)
-        or show_control and font is not None and is_control(_code)
-        or show_reserved and font is not None and is_reserved(_code)
-        or show_undefined and font is not None and not is_defined(_code)):
+    show = (is_defined(_code) and not is_private_use(_code)
+            or show_private and font is not None and is_private_use(_code)
+            or show_control and font is not None and is_control(_code)
+            or show_reserved and font is not None and is_reserved(_code)
+            or show_undefined and font is not None and not is_defined(_code))
+    if last_type or show:
+        if last_type == 1 and not show:
+            text = chr(get_char_in_last_resort(_code))
+        elif last_type == 2 and is_control(_code):
+            text = chr(_code)
         draw.text((w / 2, h / 2), text, font=font, fill=textc, anchor='mm')
     else:
         if _code in NOT_CHAR:
@@ -547,7 +546,7 @@ def generate_unicode_flash(codes,
                                      custom_fonts,
                                      opts)
         except OSError:
-            print(f'在U+{hex(code)[2:].upper().zfill(4)}处发生raster overflow，已跳过。')
+            print(f'在U+{code:04X}处发生raster overflow，已跳过。')
             continue
         img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
         video_writer.write(img_cv)
@@ -646,7 +645,7 @@ if __name__ == '__main__':
     p_font = ImageFont.truetype(percent_font_path, 20)
 
     font_path_mlst = os.path.join(CUR_FOLDER, 'Monu-Last.ttf')
-    font_path_last = os.path.join(CUR_FOLDER, 'LastResort-Regular.ttf')
+    font_path_last = os.path.join(CUR_FOLDER, 'LastResort-PUA.ttf')
     tfont_mlst = TTFont(font_path_mlst)
     tfont_last = TTFont(font_path_last)
     font_mlst = ImageFont.truetype(font_path_mlst, EXAMPLE_FONT_SIZE)
