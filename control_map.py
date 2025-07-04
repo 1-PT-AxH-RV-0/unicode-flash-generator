@@ -92,22 +92,20 @@ UNDEFINED_CHARACTER_LIST = set(range(0, 0x110000)) - set(json.load(open(
     encoding='utf8'
 ))) - CTRLS
 
-LAST_RESORT_MAP = {}
-for i, (start, end) in enumerate(BLOCK_RANGES):
-    for code in range(start, end + 1):
-        LAST_RESORT_MAP[code] = 0x100000 + i
-
-for plane_index, i in enumerate(range(0, 0xF0000, 0x10000)):
-    undefined_char_in_this_plane = filter(lambda x: i <= x <= i + 0xFFFF, UNDEFINED_CHARACTER_LIST)
-    for code in undefined_char_in_this_plane:
-        LAST_RESORT_MAP[code] = 0x10A000 + plane_index
-
-for i, (start, end) in enumerate(NOT_CHAR):
-    for code in range(start, end + 1):
-        LAST_RESORT_MAP[code] = 0x10B000 + i
-
 def get_char(code: int) -> str:
     return CHAR_MAP.get(code, chr(code))
 
 def get_char_in_last_resort(code: int) -> str:
-    return LAST_RESORT_MAP[code]
+    for i, (start, end) in enumerate(NOT_CHAR):
+        if start <= code <= end:
+            return 0x10B000 + i
+    
+    plane_index = code // 0x10000
+    if plane_index < 0xF and code in UNDEFINED_CHARACTER_LIST:
+        return 0x10A000 + plane_index
+
+    for i, (start, end) in enumerate(BLOCK_RANGES):
+        if start <= code <= end:
+            return 0x100000 + i
+    
+    raise ValueError(f"No last resort mapping found for code point: U+{code:04X}.")
