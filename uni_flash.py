@@ -3,6 +3,7 @@ from tqdm import tqdm
 from fontTools.ttLib import TTFont
 import cv2
 import numpy as np
+from concurrent.futures import ProcessPoolExecutor
 from control_map import get_char, get_char_in_last_resort, CTRLS
 
 import os
@@ -529,29 +530,61 @@ def generate_unicode_flash(codes,
         (video_properties['width'], video_properties['height'])
     )
 
-    for code_index, code in enumerate(tqdm(codes)):
-        try:
-            image = generate_an_image(code,
-                                     {
-                                         'groups': groups,
-                                         'group_lens': group_lens,
-                                         'code_index': code_index
-                                     },
-                                     dimensions,
-                                     {
-                                         'width': video_properties['width'],
-                                         'height': video_properties['height']
-                                     },
-                                     info_fonts,
-                                     custom_fonts,
-                                     opts)
-        except OSError:
-            print(f'在U+{code:04X}处发生raster overflow，已跳过。')
-            continue
-        img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-        video_writer.write(img_cv)
+    tasks = []
+    img_props = {
+        'width': video_properties['width'],
+        'height': video_properties['height']
+    }
+    for idx, code in enumerate(codes):
+        tasks.append((
+            idx,
+            code,
+            groups,
+            group_lens,
+            dimensions,
+            img_props,
+            info_fonts,
+            custom_fonts,
+            opts
+        ))
+
+    # 用多进程池并行生成帧
+    cpu_cnt = os.cpu_count() or 4
+    with ProcessPoolExecutor(max_workers=cpu_cnt) as exe:
+        # map 会按 tasks 顺序返回结果，chunksize 设小一些也可
+        for code_index, bgr_frame in exe.map(_worker_generate_frame, tasks, chunksize=8):
+            video_writer.write(bgr_frame)
 
     video_writer.release()
+
+
+def _worker_generate_frame(args):
+    """
+    args 是一个 tuple:
+      (code_index, code, groups, group_lens, dimensions, img_props, info_fonts, custom_fonts, opts)
+    返回 (code_index, bgr_frame)
+    """
+    code_index, code, groups, group_lens, dimensions, img_props, info_fonts, custom_fonts, opts = args
+
+    # 复用已有逻辑：构造传给 generate_an_image 的 group dict
+    group_dict = {
+        'groups': groups,
+        'group_lens': group_lens,
+        'code_index': code_index
+    }
+
+    pil_img = generate_an_image(
+        code,
+        group_dict,
+        dimensions,
+        img_props,
+        info_fonts,
+        custom_fonts,
+        opts
+    )
+    # 转为 OpenCV BGR
+    bgr = cv2.cvtColor(np.array(pil_img), cv2.COLOR_GRAY2BGR)
+    return code_index, bgr
 
 
 if __name__ == '__main__':
