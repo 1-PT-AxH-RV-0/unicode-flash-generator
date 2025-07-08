@@ -552,7 +552,9 @@ def generate_unicode_flash(codes,
     cpu_cnt = os.cpu_count() or 4
     with ProcessPoolExecutor(max_workers=cpu_cnt) as exe:
         # map 会按 tasks 顺序返回结果，chunksize 设小一些也可
-        for code_index, bgr_frame in exe.map(_worker_generate_frame, tasks, chunksize=8):
+        # exe.map 返回一个 (code_index, bgr_frame) 的迭代器
+        it = exe.map(_worker_generate_frame, tasks, chunksize=8)
+        for code_index, bgr_frame in tqdm(it, total=len(tasks)):
             video_writer.write(bgr_frame)
 
     video_writer.release()
