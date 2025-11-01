@@ -1,14 +1,17 @@
 from lxml import etree
-import json
+import msgpack
+import zlib
 import os
 
 CUR_FOLDER = os.path.dirname(__file__)
 UCD_XLM_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'data', 'ucd.nounihan.flat.xml')
-NAMES_LIST_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'NamesList.json')
-VERSIONS_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'Versions.json')
-COMMON_NAMES_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'CommonNames.json')
+NAMES_LIST_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'NamesList.mp.zlib')
+VERSIONS_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'Versions.mp.zlib')
+COMMON_NAMES_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'CommonNames.mp.zlib')
 
-names_list = json.load(open(NAMES_LIST_PATH))
+with open(NAMES_LIST_PATH, 'rb') as f:
+    names_list = msgpack.unpackb(zlib.decompress(f.read()), strict_map_key=False)
+
 versions = {
     'single': {},
     'range': {}
@@ -81,8 +84,8 @@ for event, elem in context:
             if fcp == 'E000' or fcp == 'F0000' or fcp == '100000':
                 name = 'PRIVATE USE-#'
             
-            versions['range'][f'{fcp_int},{lcp_int}'] = elem.get('age')
-            common_names[f'{fcp_int},{lcp_int}'] = name
+            versions['range'][(fcp_int, lcp_int)] = elem.get('age')
+            common_names[(fcp_int, lcp_int)] = name
     elif elem.tag == '{http://www.unicode.org/ns/2003/ucd/1.0}surrogate':
         cp = elem.get('cp')
         if cp is not None:
@@ -95,7 +98,7 @@ for event, elem in context:
             fcp_int = int(fcp, 16)
             lcp_int = int(lcp, 16)
             
-            versions['range'][f'{fcp_int},{lcp_int}'] = elem.get('age')
+            versions['range'][(fcp_int, lcp_int)] = elem.get('age')
     elif elem.tag == '{http://www.unicode.org/ns/2003/ucd/1.0}standardized-variant':
         cps = elem.get('cps').split()
         variation_target = str(int(cps[0], 16))
@@ -120,27 +123,11 @@ for event, elem in context:
     while elem.getprevious() is not None:
         del elem.getparent()[0]
 
-
-json.dump(
-    names_list,
-    open(NAMES_LIST_PATH, "w"),
-    # indent=2,
-    separators=(',', ':'),
-    ensure_ascii=False
-)
-
-json.dump(
-    versions,
-    open(VERSIONS_PATH, "w"),
-    # indent=2,
-    separators=(',', ':'),
-    ensure_ascii=False
-)
-
-json.dump(
-    common_names,
-    open(COMMON_NAMES_PATH, "w"),
-    # indent=2,
-    separators=(',', ':'),
-    ensure_ascii=False
-)
+with (
+    open(NAMES_LIST_PATH, 'wb') as nlf,
+    open(VERSIONS_PATH, 'wb') as vf,
+    open(COMMON_NAMES_PATH, 'wb') as cnf
+):
+    nlf.write(zlib.compress(msgpack.packb(names_list)))
+    vf.write(zlib.compress(msgpack.packb(versions)))
+    cnf.write(zlib.compress(msgpack.packb(common_names)))

@@ -1,9 +1,11 @@
 import os
 import re
-import json
+import msgpack
+import zlib
 
 CUR_FOLDER = os.path.dirname(__file__)
 NAMES_LIST_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'data', 'NamesList.txt')
+OUT_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'DefinedCharacterList.mp.zlib')
 UNICODE_RE = re.compile(r"^([0-9a-fA-F]|10)?[0-9a-fA-F]{0,4}$")
 
 res = set()
@@ -30,16 +32,5 @@ with open(NAMES_LIST_PATH) as f:
             if name.startswith('<'): continue
             res.add(int(code, 16))
 
-
-json.dump(
-  sorted(list(res)),
-  open(
-      os.path.join(
-          os.path.dirname(CUR_FOLDER),
-          'ToolFiles',
-          'DefinedCharacterList.json'
-      ),
-      'w'
-  ),
-  separators=(',', ':')
-)
+with open(OUT_PATH, 'wb') as f:
+    f.write(zlib.compress(msgpack.packb(sorted(list(res)))))

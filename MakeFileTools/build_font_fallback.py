@@ -1,30 +1,23 @@
 import os
 import json
 from fontTools.ttLib import TTFont
+import msgpack
+import zlib
 
 CUR_FOLDER = os.path.dirname(__file__)
-DEFINED_CHARACTER_LIST = set(json.load(open(
-    os.path.join(
-        os.path.dirname(CUR_FOLDER),
-        'ToolFiles', 'DefinedCharacterList.json'
-    )
-)))
-NAMES_LIST = json.load(open(
-    os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'NamesList.json'),
-    encoding='utf8'
-))
-COMMON_NAMES = {
-    tuple(map(int, k.split(','))): v
-    for k, v in
-    json.load(open(
-        os.path.join(
-            os.path.dirname(CUR_FOLDER),
-            'ToolFiles',
-            'CommonNames.json'
-        ),
-        encoding='utf8'
-    )).items()
-}
+DEFINED_CHARACTER_LIST_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'DefinedCharacterList.mp.zlib')
+NAMES_LIST_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'NamesList.mp.zlib')
+COMMON_NAMES_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'CommonNames.mp.zlib')
+OUT_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'FontFallback.mp.zlib')
+
+with (
+    open(DEFINED_CHARACTER_LIST_PATH, 'rb') as dclf,
+    open(NAMES_LIST_PATH, 'rb') as nlf,
+    open(COMMON_NAMES_PATH, 'rb') as cnf
+):
+    DEFINED_CHARACTER_LIST = set(msgpack.unpackb(zlib.decompress(dclf.read())))
+    NAMES_LIST = msgpack.unpackb(zlib.decompress(nlf.read()), strict_map_key=False)
+    COMMON_NAMES = msgpack.unpackb(zlib.decompress(cnf.read()), strict_map_key=False, use_list=False)
 
 NOT_CHAR = [
     0xFFFE, 0xFFFF, 0x1FFFE, 0x1FFFF, 0x2FFFE,
@@ -93,17 +86,8 @@ for path in fonts:
     already_can_display_codes |= set(need_codes)
     res[path] = list(need_codes)
 
-json.dump(
-    res,
-    open(
-        os.path.join(
-            os.path.dirname(CUR_FOLDER),
-            'ToolFiles', 'FontFallback.json'
-        ), 'w'
-    ),
-    # indent=2,
-    separators=(',', ':'),
-    ensure_ascii=False
-)
+with open(OUT_PATH, 'wb') as f:
+    f.write(zlib.compress(msgpack.packb(res)))
 
+print('无法显示的字符：')
 print(sorted(map(lambda c: hex(c)[2:], list(DEFINED_CHARACTER_LIST - set(already_can_display_codes)))))

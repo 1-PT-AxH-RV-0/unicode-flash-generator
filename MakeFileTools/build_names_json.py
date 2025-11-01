@@ -1,10 +1,11 @@
 import os
-import json
+import msgpack
+import zlib
 import re
 
 CUR_FOLDER = os.path.dirname(__file__)
 NAMES_LIST_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'data', 'NamesList.txt')
-OUT_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'NamesList.json')
+OUT_PATH = os.path.join(os.path.dirname(CUR_FOLDER), 'ToolFiles', 'NamesList.mp.zlib')
 CTRL_NAME = {
     k: v for k, v in zip(
         tuple(range(0x20)) + tuple(range(0x7F, 0x100)),
@@ -24,8 +25,7 @@ def edit_reserved(o):
 
 UNICODE_RE = re.compile(r"^([0-9a-fA-F]|10)?[0-9a-fA-F]{0,4}$")
 
-characters: dict[str, dict[str, str]] = {}
-
+characters: dict[int, "OneCharacter"] = {}
 
 class OneCharacter:
     id = None
@@ -44,23 +44,19 @@ class OneCharacter:
     def update(self):
         global characters
         characters[self.id] = self
-
-
-class CharacterEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, OneCharacter):
-            return {"code": "U+" + hex(obj.id)[2:].upper().zfill(4),
-                    "name": (edit_reserved(obj)
-                             if (n := obj.name) == "<reserved>"
-                             else n),
-                    "comment": obj.comment,
-                    "alias": [],
-                    "formal alias": [],
-                    "cross references": obj.xref,
-                    "variation": [],
-                    "decomposition": [],
-                    "compat mapping": obj.compat}
-        return super().default(obj)
+    
+    def serialise(self):
+        return {"code": "U+" + hex(self.id)[2:].upper().zfill(4),
+                "name": (edit_reserved(self)
+                         if (n := self.name) == "<reserved>"
+                         else n),
+                "comment": self.comment,
+                "alias": [],
+                "formal alias": [],
+                "cross references": self.xref,
+                "variation": [],
+                "decomposition": [],
+                "compat mapping": self.compat}
 
 
 with open(NAMES_LIST_PATH) as f:
@@ -124,12 +120,5 @@ with open(NAMES_LIST_PATH) as f:
         if current is not None:
             current.update()
 
-
-json.dump(
-    characters,
-    open(OUT_PATH, "w"),
-    cls=CharacterEncoder,
-    # indent=2,
-    separators=(',', ':'),
-    ensure_ascii=False
-)
+with open(OUT_PATH, "wb") as f:
+    f.write(zlib.compress(msgpack.packb({k: v.serialise() for k, v in characters.items()})))

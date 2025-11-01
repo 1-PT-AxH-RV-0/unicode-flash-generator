@@ -9,7 +9,8 @@ from control_map import get_char, get_char_in_last_resort, CTRLS
 import os
 import re
 import csv
-import json
+import msgpack
+import zlib
 import bisect
 import itertools
 
@@ -60,34 +61,25 @@ with open(
         ) for line in reader
     ]
 
+DEFINED_CHARACTER_LIST_PATH = os.path.join(CUR_FOLDER, 'ToolFiles', 'DefinedCharacterList.mp.zlib')
+NAMES_LIST_PATH = os.path.join(CUR_FOLDER, 'ToolFiles', 'NamesList.mp.zlib')
+VERSIONS_PATH = os.path.join(CUR_FOLDER, 'ToolFiles', 'Versions.mp.zlib')
+COMMON_NAMES_PATH = os.path.join(CUR_FOLDER, 'ToolFiles', 'CommonNames.mp.zlib')
+FONT_FALLBACK_PATH = os.path.join(CUR_FOLDER, 'ToolFiles', 'FontFallback.mp.zlib')
 
-NAMES_LIST = json.load(open(
-    os.path.join(CUR_FOLDER, 'ToolFiles', 'NamesList.json'),
-    encoding='utf8'
-))
-VERSIONS = json.load(open(
-    os.path.join(CUR_FOLDER, 'ToolFiles', 'Versions.json'),
-    encoding='utf8'
-))
-VERSIONS['single'] = {int(k): v for k, v in VERSIONS['single'].items()}
-VERSIONS['range'] = {tuple(map(int, k.split(','))): v for k, v in VERSIONS['range'].items()}
+with (
+    open(DEFINED_CHARACTER_LIST_PATH, 'rb') as dclf,
+    open(NAMES_LIST_PATH, 'rb') as nlf,
+    open(VERSIONS_PATH, 'rb') as vf,
+    open(COMMON_NAMES_PATH, 'rb') as cnf,
+    open(FONT_FALLBACK_PATH, 'rb') as fbf
+):
+    DEFINED_CHARACTER_LIST = set(msgpack.unpackb(zlib.decompress(dclf.read()))) - CTRLS
+    NAMES_LIST = msgpack.unpackb(zlib.decompress(nlf.read()), strict_map_key=False)
+    VERSIONS = msgpack.unpackb(zlib.decompress(vf.read()), strict_map_key=False, use_list=False)
+    COMMON_NAMES = msgpack.unpackb(zlib.decompress(cnf.read()), strict_map_key=False, use_list=False)
+    FONTS = msgpack.unpackb(zlib.decompress(fbf.read()))
 
-COMMON_NAMES = {
-    tuple(map(int, k.split(','))): v
-    for k, v in
-    json.load(open(
-        os.path.join(CUR_FOLDER, 'ToolFiles', 'CommonNames.json'),
-        encoding='utf8'
-    )).items()
-}
-DEFINED_CHARACTER_LIST = set(json.load(open(
-    os.path.join(CUR_FOLDER, 'ToolFiles', 'DefinedCharacterList.json'),
-    encoding='utf8'
-))) - CTRLS
-FONTS = json.load(open(
-    os.path.join(CUR_FOLDER, 'ToolFiles', 'FontFallback.json'),
-    encoding='utf8'
-))
 FONTS = {
     k: (set(v), ImageFont.truetype(
         os.path.join(CUR_FOLDER, 'fonts', k + '.ttf'),

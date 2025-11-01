@@ -1,9 +1,11 @@
 from functools import partial
 import os
 import csv
-import json
+import zlib
+import msgpack
 
 CUR_FOLDER = os.path.dirname(__file__)
+DEFINED_CHARACTER_LIST_PATH = os.path.join(CUR_FOLDER, 'ToolFiles', 'DefinedCharacterList.mp.zlib')
 
 CONTINUOUS_RANGES = [
     (0x00, 0x20, 0x2400),
@@ -87,10 +89,10 @@ with open(
 ) as blocks_csv:
     reader = list(csv.reader(blocks_csv, delimiter='|'))
     BLOCK_RANGES = [tuple(map(partial(int, base=16), line[0].split('..'))) for line in reader]
-UNDEFINED_CHARACTER_LIST = set(range(0, 0x110000)) - set(json.load(open(
-    os.path.join(CUR_FOLDER, 'ToolFiles', 'DefinedCharacterList.json'),
-    encoding='utf8'
-))) - CTRLS
+
+with open(DEFINED_CHARACTER_LIST_PATH, 'rb') as dclf:
+    DEFINED_CHARACTER_LIST = set(msgpack.unpackb(zlib.decompress(dclf.read())))
+UNDEFINED_CHARACTER_LIST = set(range(0, 0x110000)) - DEFINED_CHARACTER_LIST - CTRLS
 
 def get_char(code: int) -> str:
     return CHAR_MAP.get(code, chr(code))
