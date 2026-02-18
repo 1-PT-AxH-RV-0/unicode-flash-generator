@@ -97,7 +97,7 @@ UNDEFINED_CHARACTER_LIST = set(range(0, 0x110000)) - DEFINED_CHARACTER_LIST - CT
 def get_char(code: int) -> str:
     return CHAR_MAP.get(code, chr(code))
 
-def get_char_in_last_resort(code: int) -> str:
+def get_char_in_last_resort(code: int) -> int:
     for i, (start, end) in enumerate(NOT_CHAR):
         if start <= code <= end:
             return 0x10B000 + i

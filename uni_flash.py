@@ -616,7 +616,7 @@ if __name__ == '__main__':
     parser.add_argument('-sng', '--skip_no_glyph', action='store_true',
                         help='跳过在所有自定义字体中都没有字形的字符。')
     parser.add_argument('-sl', '--skip_long', action='store_true',
-                        help='跳过 U+323B0~U+DFFFF。')
+                        help='跳过 U+3347A~U+DFFFF。')
     parser.add_argument('-mt', '--margin_top', type=int, default=15,
                         help='上边距，默认 15。')
     parser.add_argument('-mb', '--margin_bottom', type=int, default=15,
@@ -703,7 +703,7 @@ if __name__ == '__main__':
     if skip_long or skip_undefined:
         codes = list(filter(
             lambda code: not (
-                skip_long and 0x323B0 <= code <= 0xDFFFF
+                skip_long and 0x3347A <= code <= 0xDFFFF
                 or skip_undefined and not is_defined(code)
             ), codes
         ))
